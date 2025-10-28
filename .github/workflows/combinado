@@ -1,0 +1,86 @@
+name: Despliegue infraestructura terraform
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Selecciona una acción: deploy o destroy"
+        required: true
+        default: "deploy"
+        type: choice
+        options:
+          - deploy
+          - destroy
+jobs:
+  deploy:
+    if: ${{ github.event.inputs.action == 'deploy' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v5.0.0
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.7 # Cambia a la versión de Terraform que necesites
+
+      - name: Configurar AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: "us-east-1"  # Cambia a la región de AWS que estás usando
+
+      - name: Inicializar Terraform
+        run: terraform init
+        working-directory: .
+
+      - name: Validar Terraform
+        run: terraform validate
+        working-directory: .
+
+      - name: Terraform plan
+        run: terraform plan
+        working-directory: .
+      - name: Terraform apply
+        run: terraform apply -auto-approve 
+        working-directory: .
+      - name: Subir Terraform State
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-state
+          path: terraform.tfstate  # Este es el archivo que estás subiendo
+          
+  destroy:
+    if: ${{ github.event.inputs.action == 'destroy' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5.0.0
+  
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.7 # Cambia a la versión de Terraform que necesites
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: "us-east-1"  # Cambia a la región de AWS que estás usando
+
+      - name: Initialize Terraform
+        run: terraform init
+        working-directory: .
+      
+      - name: Destroy Terraform
+        run: terraform destroy -auto-approve 
+
+        working-directory: .
+      
+        
+
+      
